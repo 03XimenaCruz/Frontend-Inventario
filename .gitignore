@@ -1,0 +1,9 @@
+node_modules
+.vite/
+.cache/
+*.log
+.env
+Thumbs.db
+.vscode/
+.dockerignore
+Dockerfile
