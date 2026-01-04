@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { AlertTriangle, TrendingUp, CheckCircle, Package, Search } from 'lucide-react';
+import { productService } from '../services/productService';
+import { warehouseService } from '../services/warehouseService';
 import api from '../services/api';
 import Table from '../components/common/Table';
 import Badge from '../components/common/Badge';
@@ -28,29 +30,26 @@ const StockAlerts = () => {
       const params = {};
       if (selectedWarehouse) params.warehouse_id = selectedWarehouse;
 
-      const [productsRes, warehousesRes] = await Promise.all([
-        api.get('/products', { params }),
-        api.get('/warehouses')
+      const [productsData, warehousesData] = await Promise.all([
+        productService.getAll(params),
+        warehouseService.getAll()
       ]);
 
-      const allProducts = productsRes.data;
-      setProducts(allProducts);
-      setWarehouses(warehousesRes.data);
+      setProducts(productsData);
+      setWarehouses(warehousesData);
 
-      // Calcular estadísticas
-      const bajo = allProducts.filter(p => p.stock <= p.stock_minimo).length;
-      const suficiente = allProducts.filter(p => p.stock >= p.stock_maximo).length;
-      const medio = allProducts.length - bajo - suficiente;
+      const bajo = productsData.filter(p => p.stock <= p.stock_minimo).length;
+      const suficiente = productsData.filter(p => p.stock >= p.stock_maximo).length;
+      const medio = productsData.length - bajo - suficiente;
 
       setStats({
         bajo,
         medio,
         suficiente,
-        total: allProducts.length
+        total: productsData.length
       });
     } catch (error) {
       console.error('Error al cargar datos:', error);
-      alert('Error al cargar los datos');
     } finally {
       setLoading(false);
     }
@@ -89,7 +88,6 @@ const StockAlerts = () => {
     }
   ];
 
-  // Filtrar productos
   const filteredProducts = products.filter(product =>
     product.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
     product.sku.toLowerCase().includes(searchTerm.toLowerCase())
@@ -99,9 +97,7 @@ const StockAlerts = () => {
     <div className="space-y-6">
       <h1 className="text-3xl font-bold text-gray-800">Alertas de stock</h1>
 
-      {/* Tarjetas de estadísticas */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {/* Stock bajo */}
         <div className="bg-red-50 border-l-4 border-red-400 rounded-lg shadow-md p-6">
           <div className="flex items-center justify-between">
             <div>
@@ -114,7 +110,6 @@ const StockAlerts = () => {
           </div>
         </div>
 
-        {/* Stock medio */}
         <div className="bg-yellow-50 border-l-4 border-yellow-400 rounded-lg shadow-md p-6">
           <div className="flex items-center justify-between">
             <div>
@@ -127,7 +122,6 @@ const StockAlerts = () => {
           </div>
         </div>
 
-        {/* Stock suficiente */}
         <div className="bg-green-50 border-l-4 border-green-400 rounded-lg shadow-md p-6">
           <div className="flex items-center justify-between">
             <div>
@@ -140,7 +134,6 @@ const StockAlerts = () => {
           </div>
         </div>
 
-        {/* Total de productos */}
         <div className="bg-cyan-50 border-l-4 border-cyan-400 rounded-lg shadow-md p-6">
           <div className="flex items-center justify-between">
             <div>
@@ -154,9 +147,7 @@ const StockAlerts = () => {
         </div>
       </div>
 
-      {/* Barra de búsqueda y filtros */}
       <div className="flex flex-wrap gap-4 items-center">
-        {/* Búsqueda */}
         <div className="flex-1 min-w-[300px]">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
@@ -170,12 +161,11 @@ const StockAlerts = () => {
           </div>
         </div>
 
-        {/* Filtro por almacén (solo si hay más de 1 almacén) */}
         {warehouses.length > 1 && (
           <select
             value={selectedWarehouse}
             onChange={(e) => setSelectedWarehouse(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-primary"
+            className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-primary w-full md:w-auto"
           >
             <option value="">Todos los almacenes</option>
             {warehouses.map(wh => (
@@ -185,7 +175,6 @@ const StockAlerts = () => {
         )}
       </div>
 
-      {/* Tabla de productos */}
       <Table
         columns={columns}
         data={filteredProducts}

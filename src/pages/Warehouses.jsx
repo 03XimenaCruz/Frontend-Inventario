@@ -1,15 +1,21 @@
 import { useState, useEffect } from 'react';
 import { Plus } from 'lucide-react';
+import { toast } from 'sonner';
+import { warehouseService } from '../services/warehouseService';
 import api from '../services/api';
 import Table from '../components/common/Table';
 import Button from '../components/common/Button';
 import WarehouseModal from '../components/modals/WarehouseModal';
+import ConfirmModal from '../components/modals/ConfirmModal';
 
 const Warehouses = () => {
   const [warehouses, setWarehouses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedWarehouse, setSelectedWarehouse] = useState(null);
+
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+  const [warehouseToDelete, setWarehouseToDelete] = useState(null);
 
   useEffect(() => {
     fetchWarehouses();
@@ -18,11 +24,10 @@ const Warehouses = () => {
   const fetchWarehouses = async () => {
     try {
       setLoading(true);
-      const response = await api.get('/warehouses');
-      setWarehouses(response.data);
+      const data = await warehouseService.getAll();
+      setWarehouses(data);
     } catch (error) {
       console.error('Error al cargar almacenes:', error);
-      alert('Error al cargar los almacenes');
     } finally {
       setLoading(false);
     }
@@ -38,35 +43,32 @@ const Warehouses = () => {
     setIsModalOpen(true);
   };
 
-  const handleDelete = async (warehouse) => {
-    if (!window.confirm(`¿Estás seguro de eliminar el almacén "${warehouse.nombre}"?`)) {
-      return;
-    }
+  const handleDelete = (warehouse) => {
+    setWarehouseToDelete(warehouse);
+    setIsConfirmModalOpen(true);
+  };
 
+  // ✅ 4. Agregar confirmDelete
+  const confirmDelete = async () => {
     try {
-      await api.delete(`/warehouses/${warehouse.id}`);
-      alert('Almacén eliminado exitosamente');
-      fetchWarehouses();
+      await warehouseService.delete(warehouseToDelete.id);
+      await fetchWarehouses();
     } catch (error) {
-      console.error('Error al eliminar almacén:', error);
-      alert(error.response?.data?.message || 'Error al eliminar el almacén');
+      console.error('Error al eliminar:', error);
     }
   };
 
   const handleSubmit = async (data) => {
     try {
       if (selectedWarehouse) {
-        await api.put(`/warehouses/${selectedWarehouse.id}`, data);
-        alert('Almacén actualizado exitosamente');
+        await warehouseService.update(selectedWarehouse.id, data);
       } else {
-        await api.post('/warehouses', data);
-        alert('Almacén creado exitosamente');
+        await warehouseService.create(data);
       }
       setIsModalOpen(false);
-      fetchWarehouses();
+      await fetchWarehouses();
     } catch (error) {
       console.error('Error al guardar almacén:', error);
-      alert(error.response?.data?.message || 'Error al guardar el almacén');
     }
   };
 
@@ -85,14 +87,13 @@ const Warehouses = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col lg:flex-row items-start lg:items-center lg:justify-between gap-4">
         <h1 className="text-3xl font-bold text-gray-800">Almacenes</h1>
-        <Button variant="primary" icon={Plus} onClick={handleCreate}>
+        <Button className='w-full md:w-auto md:ml-auto lg:ml-0' variant="primary" icon={Plus} onClick={handleCreate}>
           Añadir almacén
         </Button>
       </div>
 
-      {/* Tabla de almacenes */}
       <Table
         columns={columns}
         data={warehouses}
@@ -101,12 +102,22 @@ const Warehouses = () => {
         loading={loading}
       />
 
-      {/* Modal */}
       <WarehouseModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onSubmit={handleSubmit}
         warehouse={selectedWarehouse}
+      />
+
+      <ConfirmModal
+        isOpen={isConfirmModalOpen}
+        onClose={() => setIsConfirmModalOpen(false)}
+        onConfirm={confirmDelete}
+        title="¿Eliminar almacén?"
+        message={`¿Estás seguro de que deseas eliminar el almacén "${warehouseToDelete?.nombre}"? Esta acción no se puede deshacer.`}
+        confirmText="Sí, eliminar"
+        cancelText="Cancelar"
+        type="danger"
       />
     </div>
   );

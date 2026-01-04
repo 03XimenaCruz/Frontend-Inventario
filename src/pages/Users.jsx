@@ -1,16 +1,22 @@
 import { useState, useEffect } from 'react';
 import { Plus } from 'lucide-react';
+import { toast } from 'sonner';
+import { userService } from '../services/userService';
 import api from '../services/api';
 import Table from '../components/common/Table';
 import Button from '../components/common/Button';
 import Badge from '../components/common/Badge';
 import UserModal from '../components/modals/UserModal';
+import ConfirmModal from '../components/modals/ConfirmModal';
 
 const Users = () => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
+
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+  const [userToDelete, setUserToDelete] = useState(null);
 
   useEffect(() => {
     fetchUsers();
@@ -19,11 +25,10 @@ const Users = () => {
   const fetchUsers = async () => {
     try {
       setLoading(true);
-      const response = await api.get('/users');
-      setUsers(response.data);
+      const data = await userService.getAll();
+      setUsers(data);
     } catch (error) {
       console.error('Error al cargar usuarios:', error);
-      alert('Error al cargar los usuarios');
     } finally {
       setLoading(false);
     }
@@ -39,35 +44,32 @@ const Users = () => {
     setIsModalOpen(true);
   };
 
-  const handleDelete = async (user) => {
-    if (!window.confirm(`¿Estás seguro de eliminar al usuario "${user.nombre}"?`)) {
-      return;
-    }
+  const handleDelete = (user) => {
+    setUserToDelete(user);
+    setIsConfirmModalOpen(true);
+  };
 
+  // ✅ 4. Agregar confirmDelete
+  const confirmDelete = async () => {
     try {
-      await api.delete(`/users/${user.id}`);
-      alert('Usuario eliminado exitosamente');
-      fetchUsers();
+      await userService.delete(userToDelete.id);
+      await fetchUsers();
     } catch (error) {
-      console.error('Error al eliminar usuario:', error);
-      alert(error.response?.data?.message || 'Error al eliminar el usuario');
+      console.error('Error al eliminar:', error);
     }
   };
 
   const handleSubmit = async (data) => {
     try {
       if (selectedUser) {
-        await api.put(`/users/${selectedUser.id}`, data);
-        alert('Usuario actualizado exitosamente');
+        await userService.update(selectedUser.id, data);
       } else {
-        await api.post('/users', data);
-        alert('Usuario creado exitosamente');
+        await userService.create(data);
       }
       setIsModalOpen(false);
-      fetchUsers();
+      await fetchUsers();
     } catch (error) {
       console.error('Error al guardar usuario:', error);
-      alert(error.response?.data?.message || 'Error al guardar el usuario');
     }
   };
 
@@ -87,14 +89,13 @@ const Users = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col lg:flex-row items-start lg:items-center lg:justify-between gap-4">
         <h1 className="text-3xl font-bold text-gray-800">Usuarios</h1>
-        <Button variant="primary" icon={Plus} onClick={handleCreate}>
+        <Button className='w-full md:w-auto md:ml-auto lg:ml-0' variant="primary" icon={Plus} onClick={handleCreate}>
           Añadir usuario
         </Button>
       </div>
 
-      {/* Tabla de usuarios */}
       <Table
         columns={columns}
         data={users}
@@ -103,12 +104,22 @@ const Users = () => {
         loading={loading}
       />
 
-      {/* Modal */}
       <UserModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onSubmit={handleSubmit}
         user={selectedUser}
+      />
+
+      <ConfirmModal
+        isOpen={isConfirmModalOpen}
+        onClose={() => setIsConfirmModalOpen(false)}
+        onConfirm={confirmDelete}
+        title="¿Eliminar usuario?"
+        message={`¿Estás seguro de que deseas eliminar al usuario "${userToDelete?.nombre}"? Esta acción no se puede deshacer.`}
+        confirmText="Sí, eliminar"
+        cancelText="Cancelar"
+        type="danger"
       />
     </div>
   );

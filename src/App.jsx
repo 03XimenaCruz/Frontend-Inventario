@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { Toaster } from 'sonner';
 import Layout from './components/layout/Layout';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
@@ -124,6 +125,14 @@ function AppContent() {
         {/* Ruta 404 - Redireccionar a dashboard o login */}
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
+
+      <Toaster 
+          position="top-right"
+          richColors
+          closeButton
+          expand={true}
+          duration={3000}
+      />
     </Router>
   );
 }

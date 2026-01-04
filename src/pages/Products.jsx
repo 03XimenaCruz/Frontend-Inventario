@@ -1,10 +1,14 @@
 import { useState, useEffect } from 'react';
 import { Plus, Search } from 'lucide-react';
-import api from '../services/api';
+import { toast } from 'sonner';
+import { productService } from '../services/productService';
+import { categoryService } from '../services/categoryService';
+import { warehouseService } from '../services/warehouseService';
 import Table from '../components/common/Table';
 import Button from '../components/common/Button';
 import Badge from '../components/common/Badge';
 import ProductModal from '../components/modals/ProductModal';
+import ConfirmModal from '../components/modals/ConfirmModal';
 import { useAuth } from '../context/AuthContext';
 
 const Products = () => {
@@ -17,6 +21,9 @@ const Products = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
 
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+  const [productToDelete, setProductToDelete] = useState(null);
+
   const { isAdmin } = useAuth();
 
   useEffect(() => {
@@ -27,22 +34,20 @@ const Products = () => {
     try {
       setLoading(true);
       
-      // Construir query params
       const params = {};
       if (selectedWarehouse) params.warehouse_id = selectedWarehouse;
 
-      const [productsRes, categoriesRes, warehousesRes] = await Promise.all([
-        api.get('/products', { params }),
-        api.get('/categories'),
-        api.get('/warehouses')
+      const [productsData, categoriesData, warehousesData] = await Promise.all([
+        productService.getAll(params),
+        categoryService.getAll(),
+        warehouseService.getAll()
       ]);
 
-      setProducts(productsRes.data);
-      setCategories(categoriesRes.data);
-      setWarehouses(warehousesRes.data);
+      setProducts(productsData);
+      setCategories(categoriesData);
+      setWarehouses(warehousesData);
     } catch (error) {
       console.error('Error al cargar datos:', error);
-      alert('Error al cargar los datos');
     } finally {
       setLoading(false);
     }
@@ -55,10 +60,8 @@ const Products = () => {
     }
 
     try {
-      const response = await api.get('/products', {
-        params: { search: searchTerm }
-      });
-      setProducts(response.data);
+      const data = await productService.getAll({ search: searchTerm });
+      setProducts(data);
     } catch (error) {
       console.error('Error en la búsqueda:', error);
     }
@@ -74,35 +77,32 @@ const Products = () => {
     setIsModalOpen(true);
   };
 
-  const handleDelete = async (product) => {
-    if (!window.confirm(`¿Estás seguro de eliminar el producto "${product.nombre}"?`)) {
-      return;
-    }
+  const handleDelete = (product) => {
+    setProductToDelete(product);
+    setIsConfirmModalOpen(true);
+  };
 
+  const confirmDelete = async () => {
     try {
-      await api.delete(`/products/${product.id}`);
-      alert('Producto eliminado exitosamente');
-      fetchData();
+      await productService.delete(productToDelete.id);
+      await fetchData();
     } catch (error) {
-      console.error('Error al eliminar producto:', error);
-      alert(error.response?.data?.message || 'Error al eliminar el producto');
+      console.error('Error al eliminar:', error);
     }
   };
 
   const handleSubmit = async (data) => {
     try {
       if (selectedProduct) {
-        await api.put(`/products/${selectedProduct.id}`, data);
-        alert('Producto actualizado exitosamente');
+        await productService.update(selectedProduct.id, data);
       } else {
-        await api.post('/products', data);
-        alert('Producto creado exitosamente');
+        await productService.create(data);
       }
+      
       setIsModalOpen(false);
-      fetchData();
+      await fetchData();
     } catch (error) {
       console.error('Error al guardar producto:', error);
-      alert(error.response?.data?.message || 'Error al guardar el producto');
     }
   };
 
@@ -121,7 +121,6 @@ const Products = () => {
     }
   ];
 
-  // Filtrar por búsqueda local
   const filteredProducts = products.filter(product =>
     product.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
     product.sku.toLowerCase().includes(searchTerm.toLowerCase())
@@ -131,9 +130,7 @@ const Products = () => {
     <div className="space-y-6">
       <h1 className="text-3xl font-bold text-gray-800">Productos</h1>
 
-      {/* Barra de búsqueda y filtros */}
       <div className="flex flex-wrap gap-4 items-center">
-        {/* Búsqueda */}
         <div className="flex-1 min-w-[300px]">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
@@ -148,12 +145,11 @@ const Products = () => {
           </div>
         </div>
 
-        {/* Filtro por almacén (solo si hay más de 1 almacén) */}
         {warehouses.length > 1 && (
           <select
             value={selectedWarehouse}
             onChange={(e) => setSelectedWarehouse(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-primary"
+            className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-primary w-full md:w-auto"
           >
             <option value="">Todos los almacenes</option>
             {warehouses.map(wh => (
@@ -162,15 +158,13 @@ const Products = () => {
           </select>
         )}
 
-        {/* Botón agregar (solo admin) */}
         {isAdmin && (
-          <Button variant="primary" icon={Plus} onClick={handleCreate}>
+          <Button className='w-full md:w-auto' variant="primary" icon={Plus} onClick={handleCreate}>
             Agregar producto
           </Button>
         )}
       </div>
 
-      {/* Tabla de productos */}
       <Table
         columns={columns}
         data={filteredProducts}
@@ -179,7 +173,6 @@ const Products = () => {
         loading={loading}
       />
 
-      {/* Modal */}
       <ProductModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
@@ -187,6 +180,17 @@ const Products = () => {
         product={selectedProduct}
         categories={categories}
         warehouses={warehouses}
+      />
+
+      <ConfirmModal
+        isOpen={isConfirmModalOpen}
+        onClose={() => setIsConfirmModalOpen(false)}
+        onConfirm={confirmDelete}
+        title="¿Eliminar producto?"
+        message={`¿Estás seguro de que deseas eliminar el producto "${productToDelete?.nombre}"? Esta acción no se puede deshacer.`}
+        confirmText="Sí, eliminar"
+        cancelText="Cancelar"
+        type="danger"
       />
     </div>
   );

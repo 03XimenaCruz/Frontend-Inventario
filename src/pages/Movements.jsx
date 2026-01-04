@@ -1,5 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Plus } from 'lucide-react';
+import { movementService } from '../services/movementService';
+import { productService } from '../services/productService';
+import { warehouseService } from '../services/warehouseService';
 import api from '../services/api';
 import Table from '../components/common/Table';
 import Button from '../components/common/Button';
@@ -25,18 +28,17 @@ const Movements = () => {
       const params = {};
       if (selectedWarehouse) params.warehouse_id = selectedWarehouse;
 
-      const [movementsRes, productsRes, warehousesRes] = await Promise.all([
-        api.get('/movements', { params }),
-        api.get('/products'),
-        api.get('/warehouses')
+      const [movementsData, productsData, warehousesData] = await Promise.all([
+        movementService.getAll(params),
+        productService.getAll(),
+        warehouseService.getAll()
       ]);
 
-      setMovements(movementsRes.data);
-      setProducts(productsRes.data);
-      setWarehouses(warehousesRes.data);
+      setMovements(movementsData);
+      setProducts(productsData);
+      setWarehouses(warehousesData);
     } catch (error) {
       console.error('Error al cargar datos:', error);
-      alert('Error al cargar los datos');
     } finally {
       setLoading(false);
     }
@@ -48,13 +50,11 @@ const Movements = () => {
 
   const handleSubmit = async (data) => {
     try {
-      await api.post('/movements', data);
-      alert('Movimiento registrado exitosamente');
+      await movementService.create(data);
       setIsModalOpen(false);
-      fetchData();
+      await fetchData();
     } catch (error) {
       console.error('Error al registrar movimiento:', error);
-      alert(error.response?.data?.message || 'Error al registrar el movimiento');
     }
   };
 
@@ -94,16 +94,14 @@ const Movements = () => {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl font-bold text-gray-800">Registro de entradas y salidas de productos</h1>
+      <h1 className="text-3xl font-bold text-gray-800">Registro de movimientos</h1>
 
-      {/* Barra de filtros */}
       <div className="flex justify-end flex-wrap gap-4 items-center">
-        {/* Filtro por almacén (solo si hay más de 1 almacén) */}
         {warehouses.length > 1 && (
           <select
             value={selectedWarehouse}
             onChange={(e) => setSelectedWarehouse(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-primary"
+            className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-primary w-full md:w-auto"
           >
             <option value="">Todos los almacenes</option>
             {warehouses.map(wh => (
@@ -112,20 +110,17 @@ const Movements = () => {
           </select>
         )}
 
-        {/* Botón registrar movimiento */}
-        <Button variant="primary" icon={Plus} onClick={handleCreate}>
+        <Button className='w-full md:w-auto' variant="primary" icon={Plus} onClick={handleCreate}>
           Registrar movimiento
         </Button>
       </div>
 
-      {/* Tabla de movimientos */}
       <Table
         columns={columns}
         data={movements}
         loading={loading}
       />
 
-      {/* Modal */}
       <MovementModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}

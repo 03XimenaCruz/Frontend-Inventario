@@ -38,8 +38,8 @@ const Badge = ({ type, text, icon, className = '' }) => {
     
     // Roles
     administrador: {
-      bg: 'bg-lime-100',
-      text: 'text-lime-700',
+      bg: 'bg-cyan-100',
+      text: 'text-cyan-800',
       icon: null,
       defaultText: 'Administrador'
     },
