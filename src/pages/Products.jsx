@@ -14,10 +14,12 @@ import { useAuth } from '../context/AuthContext';
 const Products = () => {
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [allCategories, setAllCategories] = useState([]);
   const [warehouses, setWarehouses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedWarehouse, setSelectedWarehouse] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
 
@@ -27,8 +29,51 @@ const Products = () => {
   const { isAdmin } = useAuth();
 
   useEffect(() => {
-    fetchData();
+    fetchInitialData();
+  }, []);
+
+  const fetchInitialData = async () => {
+    try {
+      const [warehousesData, categoriesData] = await Promise.all([
+        warehouseService.getAll(),
+        categoryService.getAll()
+      ]);
+      setWarehouses(warehousesData);
+      setAllCategories(categoriesData);
+      setCategories(categoriesData);
+    } catch (error) {
+      console.error('Error al cargar datos iniciales:', error);
+    }
+  };
+
+
+  useEffect(() => {
+    const loadCategoriesByWarehouse = async () => {
+      if (selectedWarehouse) {
+        try {
+          const categoriesData = await categoryService.getAll({ warehouse_id: selectedWarehouse });
+          setCategories(categoriesData);
+          // Limpiar categoría seleccionada si no está en el nuevo almacén
+          if (selectedCategory) {
+            const categoryExists = categoriesData.find(c => c.id === parseInt(selectedCategory));
+            if (!categoryExists) {
+              setSelectedCategory('');
+            }
+          }
+        } catch (error) {
+          console.error('Error al cargar categorías:', error);
+        }
+      } else {
+        setCategories(allCategories);
+      }
+    };
+
+    loadCategoriesByWarehouse();
   }, [selectedWarehouse]);
+
+  useEffect(() => {
+    fetchData();
+  }, [selectedWarehouse, selectedCategory]);
 
   const fetchData = async () => {
     try {
@@ -36,18 +81,12 @@ const Products = () => {
       
       const params = {};
       if (selectedWarehouse) params.warehouse_id = selectedWarehouse;
+      if (selectedCategory) params.category_id = selectedCategory;
 
-      const [productsData, categoriesData, warehousesData] = await Promise.all([
-        productService.getAll(params),
-        categoryService.getAll(),
-        warehouseService.getAll()
-      ]);
-
+      const productsData = await productService.getAll(params);
       setProducts(productsData);
-      setCategories(categoriesData);
-      setWarehouses(warehousesData);
     } catch (error) {
-      console.error('Error al cargar datos:', error);
+      console.error('Error al cargar productos:', error);
     } finally {
       setLoading(false);
     }
@@ -60,6 +99,8 @@ const Products = () => {
     }
 
     try {
+      setSelectedWarehouse('');
+      setSelectedCategory('');
       const data = await productService.getAll({ search: searchTerm });
       setProducts(data);
     } catch (error) {
@@ -102,7 +143,7 @@ const Products = () => {
       setIsModalOpen(false);
       await fetchData();
     } catch (error) {
-      console.error('Error al guardar producto:', error);
+      throw error;
     }
   };
 
@@ -111,9 +152,7 @@ const Products = () => {
     { header: 'Nombre', accessor: 'nombre' },
     { header: 'Categoría', accessor: 'categoria' },
     {
-      header: 'Almacén',
-      render: (row) => <Badge type="almacen" text={row.almacen} />
-    },
+      header: 'Almacén', accessor: "almacen"},
     { header: 'Stock', accessor: 'stock' },
     {
       header: 'Fecha de registro',
@@ -145,10 +184,28 @@ const Products = () => {
           </div>
         </div>
 
+        {categories.length > 0 && (
+          <select
+            value={selectedCategory}
+            onChange={(e) => {
+              setSelectedCategory(e.target.value);
+              setSearchTerm('');
+            }}
+            className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-primary w-full md:w-auto"
+          >
+            <option value="">Todas las categorías</option>
+            {categories.map(cat => (
+              <option key={cat.id} value={cat.id}>{cat.nombre}{cat.almacen && ` (${cat.almacen})`}</option>
+            ))}
+          </select>
+        )}
+
         {warehouses.length > 1 && (
           <select
             value={selectedWarehouse}
-            onChange={(e) => setSelectedWarehouse(e.target.value)}
+            onChange={(e) => {setSelectedWarehouse(e.target.value);
+            setSearchTerm('');
+            }}
             className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-primary w-full md:w-auto"
           >
             <option value="">Todos los almacenes</option>
@@ -159,7 +216,7 @@ const Products = () => {
         )}
 
         {isAdmin && (
-          <Button className='w-full md:w-auto' variant="primary" icon={Plus} onClick={handleCreate}>
+          <Button className='w-full md:w-auto md:ml-auto' variant="primary" icon={Plus} onClick={handleCreate}>
             Agregar producto
           </Button>
         )}

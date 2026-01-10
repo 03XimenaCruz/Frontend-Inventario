@@ -20,9 +20,9 @@ const Table = ({ columns, data, onEdit, onDelete, loading = false }) => {
   return (
     <div>
       {/* VISTA DE TABLA - Solo visible en pantallas grandes (lg y superiores) */}
-      <div className="hidden lg:block overflow-x-auto">
+      <div className="hidden lg:block overflow-hidden rounded-lg border shadow-sm">
         <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-cyan-100 rounded">
+          <thead className="bg-primary-light">
             <tr>
               {columns.map((column, index) => (
                 <th
@@ -53,7 +53,7 @@ const Table = ({ columns, data, onEdit, onDelete, loading = false }) => {
                       {onEdit && (
                         <button
                           onClick={() => onEdit(row)}
-                          className="text-cyan-600 hover:text-cyan-700 transition p-2 hover:bg-white rounded"
+                          className="text-cyan-600 hover:text-cyan-700 transition p-2 hover:bg-cyan-50 rounded"
                           title="Editar"
                         >
                           <Edit size={18}/>
@@ -62,7 +62,7 @@ const Table = ({ columns, data, onEdit, onDelete, loading = false }) => {
                       {onDelete && (
                         <button
                           onClick={() => onDelete(row)}
-                          className="text-red-600 hover:text-red-700 transition p-2 hover:bg-white rounded"
+                          className="text-red-600 hover:text-red-700 transition p-2 hover:bg-cyan-50 rounded"
                           title="Eliminar"
                         >
                           <Trash2 size={18}/>
@@ -78,44 +78,63 @@ const Table = ({ columns, data, onEdit, onDelete, loading = false }) => {
       </div>
 
       {/* VISTA DE CARDS - Visible en móvil y tablet (menores a lg) */}
-      <div className="lg:hidden space-y-4">
+      <div className="lg:hidden grid grid-cols-1 gap-4">
         {data.map((row, rowIndex) => (
-          <div 
-            key={rowIndex} 
-            className="bg-white hover:bg-cyan-50 rounded-lg p-4 shadow-md hover:shadow-lg transition-all duration-300 cursor-pointer"
+          <div
+            key={rowIndex}
+            className="bg-white rounded-xl p-4 shadow-md hover:shadow-lg transition-all duration-300"
           >
-            {/* Contenido de la card */}
-            <div className="space-y-3">
-              {columns.map((column, colIndex) => (
-                <div key={colIndex} className="flex justify-between items-start">
-                  <span className="font-semibold text-gray-700 text-sm uppercase">
-                    {column.header}:
-                  </span>
-                  <span className="text-gray-800 text-sm text-right ml-2">
-                    {column.render ? column.render(row) : row[column.accessor]}
-                  </span>
-                </div>
-              ))}
+            {/* HEADER */}
+            <div className="mb-3">
+              <h3 className="text-lg font-bold text-gray-800">
+                {row.nombre}
+              </h3>
+              {row.sku && (
+                <p className="text-md text-gray-500">
+                  SKU: {row.sku}
+                </p>
+              )}
             </div>
 
-            {/* Botones de acción */}
+            {/* BADGES */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3">
+              {columns
+                .filter(col => !['nombre', 'sku'].includes(col.accessor))
+                .map((column, colIndex) => (
+                  <div
+                    key={colIndex}
+                    className="flex items-center gap-1 bg-cyan-100 text-cyan-700 px-3 py-1 rounded-full text-xs font-medium"
+                  >
+                    <span className="capitalize">
+                      {column.header}:
+                    </span>
+                    <span className="ml-2 text-right">
+                      {column.render ? column.render(row) : row[column.accessor]}
+                    </span>
+                  </div>
+                ))}
+            </div>
+
+
+            {/* BOTONES */}
             {(onEdit || onDelete) && (
-              <div className="flex items-center gap-3 mt-4 pt-4 border-t border-cyan-200">
+              <div className="flex gap-3 mt-4 pt-4 border-t border-gray-200">
                 {onEdit && (
                   <button
                     onClick={() => onEdit(row)}
-                    className="flex-1 flex items-center justify-center gap-2 bg-cyan-600 hover:bg-cyan-700 text-white py-2 px-4 rounded transition"
+                    className="flex-1 flex items-center justify-center gap-2 bg-primary hover:bg-cyan-600 text-white py-2 rounded-lg transition"
                   >
-                    <Edit size={16}/>
+                    <Edit size={16} />
                     <span className="text-sm font-medium">Editar</span>
                   </button>
                 )}
+
                 {onDelete && (
                   <button
                     onClick={() => onDelete(row)}
-                    className="flex-1 flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded transition"
+                    className="flex-1 flex items-center justify-center gap-2 bg-red-500 hover:bg-red-600 text-white py-2 rounded-lg transition"
                   >
-                    <Trash2 size={16}/>
+                    <Trash2 size={16} />
                     <span className="text-sm font-medium">Eliminar</span>
                   </button>
                 )}
@@ -124,6 +143,7 @@ const Table = ({ columns, data, onEdit, onDelete, loading = false }) => {
           </div>
         ))}
       </div>
+
     </div>
   );
 };

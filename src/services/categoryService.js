@@ -2,9 +2,9 @@ import api from './api';
 import { toast } from 'sonner';
 
 export const categoryService = {
-  getAll: async () => {
+  getAll: async (params) => {
     try {
-      const response = await api.get('/categories');
+      const response = await api.get('/categories', {params});
       return response.data;
     } catch (error) {
       throw error;

@@ -40,7 +40,10 @@ const Login = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-cyan-50">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8">
+      <div className="bg-white rounded-2xl shadow-2xl w-[90%] 
+  sm:w-[420px] 
+  p-6 
+  sm:p-8">
         <div className="flex justify-center mb-8">
           <div className="w-20 h-20 bg-cyan-400 rounded-full flex items-center justify-center">
             <Package size={40} className="text-white" />

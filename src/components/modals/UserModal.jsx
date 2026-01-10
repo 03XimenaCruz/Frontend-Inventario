@@ -168,11 +168,11 @@ const UserModal = ({ isOpen, onClose, onSubmit, user }) => {
 
           {/* Botones */}
           <div className="flex gap-3 pt-4">
-            <Button type="submit" variant="primary" className="flex-1">
-              {user ? 'Actualizar' : 'Crear Usuario'}
-            </Button>
             <Button type="button" variant="secondary" onClick={onClose} className="flex-1">
               Cancelar
+            </Button>
+            <Button type="submit" variant="primary" className="flex-1">
+              {user ? 'Actualizar' : 'Guardar'}
             </Button>
           </div>
         </form>

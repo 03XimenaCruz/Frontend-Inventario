@@ -52,8 +52,8 @@ const Badge = ({ type, text, icon, className = '' }) => {
     
     // Almacén
     almacen: {
-      bg: 'bg-indigo-100',
-      text: 'text-indigo-700',
+      bg: 'bg-primary-light',
+      text: 'text-cyan-700',
       //icon: Package,
       defaultText: 'Almacén'
     }

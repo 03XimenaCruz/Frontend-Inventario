@@ -2,9 +2,10 @@ import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import Button from '../common/Button';
 
-const CategoryModal = ({ isOpen, onClose, onSubmit, category }) => {
+const CategoryModal = ({ isOpen, onClose, onSubmit, category, warehouses }) => {
   const [formData, setFormData] = useState({
-    nombre: ''
+    nombre: '',
+    warehouse_id: ''
   });
 
   const [errors, setErrors] = useState({});
@@ -12,15 +13,19 @@ const CategoryModal = ({ isOpen, onClose, onSubmit, category }) => {
   useEffect(() => {
     if (category) {
       setFormData({
-        nombre: category.nombre || ''
+        nombre: category.nombre || '',
+        warehouse_id: category.warehouse_id || ''
       });
     } else {
+      // Si solo hay un almacén, establecerlo por defecto
+      const defaultWarehouseId = warehouses && warehouses.length === 1 ? warehouses[0].id : '';
       setFormData({
-        nombre: ''
+        nombre: '',
+        warehouse_id: defaultWarehouseId
       });
     }
     setErrors({});
-  }, [category, isOpen]);
+  }, [category, isOpen, warehouses]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -53,6 +58,9 @@ const CategoryModal = ({ isOpen, onClose, onSubmit, category }) => {
   };
 
   if (!isOpen) return null;
+
+  // Determinar si mostrar el selector de almacén
+  const showWarehouseSelector = warehouses && warehouses.length > 1;
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -89,6 +97,29 @@ const CategoryModal = ({ isOpen, onClose, onSubmit, category }) => {
             />
             {errors.nombre && <p className="text-red-500 text-sm mt-1">{errors.nombre}</p>}
           </div>
+
+          {/* Selector de Almacén - Solo se muestra si hay más de 1 almacén */}
+          {showWarehouseSelector && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Almacén (Opcional)
+              </label>
+              <select
+                name="warehouse_id"
+                value={formData.warehouse_id}
+                onChange={handleChange}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-primary"
+              >
+                <option value="">Global (Todos los almacenes)</option>
+                {warehouses.map(wh => (
+                  <option key={wh.id} value={wh.id}>{wh.nombre}</option>
+                ))}
+              </select>
+              <p className="text-xs text-gray-500 mt-1">
+                Si no seleccionas un almacén, la categoría estará disponible para todos
+              </p>
+            </div>
+          )}
 
           {/* Botones */}
           <div className="flex gap-3 pt-4">

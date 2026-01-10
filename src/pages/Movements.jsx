@@ -126,6 +126,7 @@ const Movements = () => {
         onClose={() => setIsModalOpen(false)}
         onSubmit={handleSubmit}
         products={products}
+        warehouses={warehouses}
       />
     </div>
   );

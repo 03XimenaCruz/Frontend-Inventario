@@ -9,7 +9,7 @@ const Layout = () => {
   const { user } = useAuth();
 
   return (
-    <div className="flex min-h-screen bg-gradient-to-br from-blue-50 to-cyan-50">
+    <div className="flex min-h-screen bg-white">
       <Sidebar 
         userRole={user?.rol} 
         isOpen={sidebarOpen}
@@ -35,9 +35,7 @@ const Layout = () => {
         {/* Contenido principal */}
         <main className="flex-1">
           <div className="p-4 sm:p-6 lg:p-8">
-            <div className="bg-white rounded-2xl shadow-lg p-4 sm:p-6 lg:p-8 min-h-[calc(100vh-8rem)]">
               <Outlet />
-            </div>
           </div>
         </main>
       </div>

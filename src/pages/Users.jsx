@@ -49,7 +49,7 @@ const Users = () => {
     setIsConfirmModalOpen(true);
   };
 
-  // ✅ 4. Agregar confirmDelete
+  // 4. Agregar confirmDelete
   const confirmDelete = async () => {
     try {
       await userService.delete(userToDelete.id);
