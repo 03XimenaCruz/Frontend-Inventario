@@ -17,7 +17,6 @@ const CategoryModal = ({ isOpen, onClose, onSubmit, category, warehouses }) => {
         warehouse_id: category.warehouse_id || ''
       });
     } else {
-      // Si solo hay un almacén, establecerlo por defecto
       const defaultWarehouseId = warehouses && warehouses.length === 1 ? warehouses[0].id : '';
       setFormData({
         nombre: '',
@@ -33,7 +32,6 @@ const CategoryModal = ({ isOpen, onClose, onSubmit, category, warehouses }) => {
       ...prev,
       [name]: value
     }));
-    // Limpiar error del campo
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: '' }));
     }
@@ -59,7 +57,6 @@ const CategoryModal = ({ isOpen, onClose, onSubmit, category, warehouses }) => {
 
   if (!isOpen) return null;
 
-  // Determinar si mostrar el selector de almacén
   const showWarehouseSelector = warehouses && warehouses.length > 1;
 
   return (

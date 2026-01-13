@@ -331,7 +331,7 @@ const ProductModal = ({ isOpen, onClose, onSubmit, product, categories, warehous
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Stock Medio <span className="text-red-500">*</span>
+                Stock Maximo <span className="text-red-500">*</span>
               </label>
               <input
                 type="number"

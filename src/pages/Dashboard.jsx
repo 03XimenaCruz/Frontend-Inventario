@@ -12,18 +12,42 @@ const Dashboard = () => {
     totalUsers: 0,
     topExitsMonth: [],
     lowExitsMonth: [],
-    lowStockAlerts: []
+    lowStockAlerts: [],
+    excessStockAlerts: []
   });
   const [loading, setLoading] = useState(true);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+  
+  const [warehouses, setWarehouses] = useState([]);
+  const [selectedWarehouse, setSelectedWarehouse] = useState('');
+
+  useEffect(() => {
+    fetchWarehouses();
+  }, []);
 
   useEffect(() => {
     fetchStats();
-  }, []);
+  }, [selectedWarehouse]);
+
+  const fetchWarehouses = async () => {
+    try {
+      const response = await api.get('/dashboard/warehouses');
+      setWarehouses(response.data);
+    } catch (error) {
+      console.error('Error al cargar almacenes:', error);
+    }
+  };
 
   const fetchStats = async () => {
     try {
-      const response = await api.get('/dashboard/stats');
+      setLoading(true);
+      
+      const params = {};
+      if (selectedWarehouse) {
+        params.warehouse_id = selectedWarehouse;
+      }
+      
+      const response = await api.get('/dashboard/stats', { params });
       setStats(response.data);
     } catch (error) {
       console.error('Error al obtener estadísticas:', error);
@@ -33,31 +57,14 @@ const Dashboard = () => {
     }
   };
 
-  // Paleta de colores
   const distinctColors = [
-    '#3b82f6', 
-    '#10b981',
-    '#f59e0b',
-    '#ef4444',
-    '#8b5cf6', 
-    '#ec4899', 
-    '#06b6d4', 
-    '#f97316', 
-    '#14b8a6', 
-    '#a855f7', 
+    '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6',
+    '#ec4899', '#06b6d4', '#f97316', '#14b8a6', '#a855f7',
   ];
 
   const distinctColorsLow = [
-    '#ef4444',
-    '#f97316',
-    '#f59e0b',
-    '#eab308',
-    '#84cc16',
-    '#10b981',
-    '#14b8a6',
-    '#06b6d4',
-    '#3b82f6',
-    '#8b5cf6',
+    '#ef4444', '#f97316', '#f59e0b', '#eab308', '#84cc16',
+    '#10b981', '#14b8a6', '#06b6d4', '#3b82f6', '#8b5cf6',
   ];
 
   if (loading) {
@@ -68,9 +75,29 @@ const Dashboard = () => {
     );
   }
 
+
+  const showWarehouseFilter = warehouses.length > 1;
+
   return (
     <div className="space-y-4 sm:space-y-6 lg:space-y-8">
-      <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">Dashboard</h1>
+      {/* HEADER CON FILTRO */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">Dashboard</h1>
+        
+        {/* FILTRO DE ALMACÉN - Solo si hay más de 1 */}
+        {showWarehouseFilter && (
+          <select
+            value={selectedWarehouse}
+            onChange={(e) => setSelectedWarehouse(e.target.value)}
+            className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-primary w-full sm:w-64"
+          >
+            <option value="">Todos los almacenes</option>
+            {warehouses.map(wh => (
+              <option key={wh.id} value={wh.id}>{wh.nombre}</option>
+            ))}
+          </select>
+        )}
+      </div>
 
       {/* Cards de estadísticas */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
@@ -126,65 +153,111 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* Alertas de Stock Bajo y Gráficas */}
+      {/* Alertas de Stock y Gráficas */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6">
-        {/* Alertas de Stock Bajo - Izquierda en desktop */}
-        {stats.lowStockAlerts && stats.lowStockAlerts.length > 0 && (
-          <div className="lg:col-span-4">
-            <div className="bg-red-50 border-l-4 border-red-500 rounded-lg shadow-md p-4 sm:p-6">
-              <div className="flex items-center gap-2 mb-3">
-                <AlertTriangle className="w-5 h-5 sm:w-6 sm:h-6 text-red-600 flex-shrink-0" />
-                <h3 className="text-base sm:text-lg font-bold text-red-800">Productos con Stock Bajo</h3>
-              </div>
-              
-              {/* Contenedor con scroll fijo */}
-              <div className="overflow-y-auto space-y-2 pr-2" style={{ maxHeight: '520px' }}>
-                {stats.lowStockAlerts.map((product) => (
-                  <div key={product.id} className="bg-white rounded-lg p-3 sm:p-4 border border-red-200">
-                    <div className="flex flex-col gap-2">
-                      <div className="flex-1">
-                        <p className="font-semibold text-sm sm:text-base text-gray-800">{product.nombre}</p>
-                        <p className="text-xs sm:text-sm text-gray-600 mt-1">
-                          SKU: {product.sku}
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          {product.categoria} | {product.almacen}
-                        </p>
-                      </div>
-                      <div className="flex items-center justify-between pt-2 border-t border-gray-100">
-                        <span className="text-xs text-gray-500">Stock actual</span>
-                        <div className="text-right">
-                          <p className="text-xl sm:text-2xl font-bold text-red-600">{product.stock}</p>
-                          <p className="text-xs text-gray-500">Mín: {product.stock_minimo}</p>
+        
+        {/* Columna de Alertas - Izquierda en desktop */}
+        {(stats.lowStockAlerts?.length > 0 || stats.excessStockAlerts?.length > 0) && (
+          <div className="lg:col-span-4 space-y-4 sm:space-y-6">
+            
+            {/* ALERTA DE STOCK BAJO */}
+            {stats.lowStockAlerts && stats.lowStockAlerts.length > 0 && (
+              <div className="bg-red-50 border-l-4 border-red-500 rounded-lg shadow-md p-4 sm:p-6">
+                <div className="flex items-center gap-2 mb-3">
+                  <AlertTriangle className="w-5 h-5 sm:w-6 sm:h-6 text-red-600 flex-shrink-0" />
+                  <h3 className="text-base sm:text-lg font-bold text-red-800">Productos con Stock Bajo</h3>
+                </div>
+                
+                <div className="overflow-y-auto space-y-2 pr-2" style={{ maxHeight: '420px' }}>
+                  {stats.lowStockAlerts.map((product) => (
+                    <div key={product.id} className="bg-white rounded-lg p-3 sm:p-4 border border-red-200">
+                      <div className="flex flex-col gap-2">
+                        <div className="flex-1">
+                          <p className="font-semibold text-sm sm:text-base text-gray-800">{product.nombre}</p>
+                          <p className="text-xs sm:text-sm text-gray-600 mt-1">SKU: {product.sku}</p>
+                          <p className="text-xs text-gray-500">{product.categoria} | {product.almacen}</p>
+                        </div>
+                        <div className="flex items-center justify-between pt-2 border-t border-gray-100">
+                          <span className="text-xs text-gray-500">Stock actual</span>
+                          <div className="text-right">
+                            <p className="text-xl sm:text-2xl font-bold text-red-600">{product.stock}</p>
+                            <p className="text-xs text-gray-500">Mín: {product.stock_minimo}</p>
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-              
-              {/* Indicador de scroll si hay más de 3 productos */}
-              {stats.lowStockAlerts.length > 3 && (
-                <div className="text-center mt-2 text-xs text-red-600 font-medium">
-                  ↓ Desplázate para ver más ({stats.lowStockAlerts.length} productos)
+                  ))}
                 </div>
-              )}
-            </div>
+                
+                {stats.lowStockAlerts.length > 3 && (
+                  <div className="text-center mt-2 text-xs text-red-600 font-medium">
+                    ↓ Desplázate para ver más ({stats.lowStockAlerts.length} productos)
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* ALERTA DE EXCESO DE STOCK */}
+            {stats.excessStockAlerts && stats.excessStockAlerts.length > 0 && (
+              <div className="bg-orange-50 border-l-4 border-orange-500 rounded-lg shadow-md p-4 sm:p-6">
+                <div className="flex items-center gap-2 mb-3">
+                  <Package className="w-5 h-5 sm:w-6 sm:h-6 text-orange-600 flex-shrink-0" />
+                  <h3 className="text-base sm:text-lg font-bold text-orange-800">Productos con Exceso de Stock</h3>
+                </div>
+                
+                <div className="overflow-y-auto space-y-2 pr-2" style={{ maxHeight: '420px' }}>
+                  {stats.excessStockAlerts.map((product) => (
+                    <div key={product.id} className="bg-white rounded-lg p-3 sm:p-4 border border-orange-200">
+                      <div className="flex flex-col gap-2">
+                        <div className="flex-1">
+                          <p className="font-semibold text-sm sm:text-base text-gray-800">{product.nombre}</p>
+                          <p className="text-xs sm:text-sm text-gray-600 mt-1">SKU: {product.sku}</p>
+                          <p className="text-xs text-gray-500">{product.categoria} | {product.almacen}</p>
+                        </div>
+                        <div className="flex items-center justify-between pt-2 border-t border-gray-100">
+                          <span className="text-xs text-gray-500">Stock actual</span>
+                          <div className="text-right">
+                            <p className="text-xl sm:text-2xl font-bold text-orange-600">{product.stock}</p>
+                            <p className="text-xs text-gray-500">Máx: {product.stock_maximo}</p>
+                            <p className="text-xs text-orange-600 font-semibold">Exceso: +{product.exceso}</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                
+                {stats.excessStockAlerts.length > 3 && (
+                  <div className="text-center mt-2 text-xs text-orange-600 font-medium">
+                    ↓ Desplázate para ver más ({stats.excessStockAlerts.length} productos)
+                  </div>
+                )}
+              </div>
+            )}
+
           </div>
         )}
 
-        {/* Gráficas de Productos - Derecha en desktop (apiladas verticalmente) */}
-        <div className={stats.lowStockAlerts && stats.lowStockAlerts.length > 0 ? "xl:col-span-8" : "xl:col-span-12"}>
-          <div className={stats.lowStockAlerts && stats.lowStockAlerts.length > 0 ? "space-y-4 sm:space-y-6" : "grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6"}>
+        {/* Gráficas de Productos */}
+        <div className={
+          (stats.lowStockAlerts?.length > 0 || stats.excessStockAlerts?.length > 0) 
+            ? "xl:col-span-8" 
+            : "xl:col-span-12"
+        }>
+          <div className={
+            (stats.lowStockAlerts?.length > 0 || stats.excessStockAlerts?.length > 0) 
+              ? "space-y-4 sm:space-y-6" 
+              : "grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6"
+          }>
             {/* Productos MÁS VENDIDOS */}
             <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
               <h2 className="text-lg sm:text-xl font-bold text-gray-800 mb-4">
-                Top productos más vendidos
+                Top Productos Más Vendidos
               </h2>
               
               {stats.topExitsMonth && stats.topExitsMonth.length > 0 ? (
                 <div className="w-full overflow-x-auto">
-                  <ResponsiveContainer width="100%" height={stats.lowExitsMonth.length <= 3 ? 180 : stats.lowExitsMonth.length * 55}>
+                  <ResponsiveContainer width="100%" height={stats.topExitsMonth.length <= 3 ? 130 : stats.topExitsMonth.length * 42}>
                     <BarChart 
                       data={stats.topExitsMonth} 
                       layout="vertical"
@@ -192,16 +265,8 @@ const Dashboard = () => {
                       barSize={35}
                     >
                       <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" horizontal={true} vertical={false} />
-                      <XAxis 
-                        type="number"
-                        tick={{ fontSize: 12, fill: '#374151' }}
-                      />
-                      <YAxis 
-                        type="category"
-                        dataKey="nombre" 
-                        width={150}
-                        tick={{ fontSize: 11, fill: '#374151' }}
-                      />
+                      <XAxis type="number" tick={{ fontSize: 12, fill: '#374151' }} />
+                      <YAxis type="category" dataKey="nombre" width={150} tick={{ fontSize: 11, fill: '#374151' }} />
                       <Tooltip 
                         contentStyle={{ 
                           backgroundColor: '#fff', 
@@ -216,12 +281,7 @@ const Dashboard = () => {
                       <Bar 
                         dataKey="total_vendido" 
                         radius={[0, 8, 8, 0]}
-                        label={{ 
-                          position: 'right', 
-                          fill: '#374151',
-                          fontSize: 12,
-                          fontWeight: 'bold'
-                        }}
+                        label={{ position: 'right', fill: '#374151', fontSize: 12, fontWeight: 'bold' }}
                       >
                         {stats.topExitsMonth.map((entry, index) => (
                           <Cell key={`cell-${index}`} fill={distinctColors[index % distinctColors.length]} />
@@ -241,12 +301,12 @@ const Dashboard = () => {
             {/* Productos MENOS VENDIDOS */}
             <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
               <h2 className="text-lg sm:text-xl font-bold text-gray-800 mb-4">
-                Top productos menos vendidos
+                Top Productos Menos Vendidos
               </h2>
               
               {stats.lowExitsMonth && stats.lowExitsMonth.length > 0 ? (
                 <div className="w-full overflow-x-auto">
-                  <ResponsiveContainer width="100%" height={stats.lowExitsMonth.length <= 3 ? 180 : stats.lowExitsMonth.length * 55}>
+                  <ResponsiveContainer width="100%" height={stats.lowExitsMonth.length <= 3 ? 130 : stats.lowExitsMonth.length * 42}>
                     <BarChart 
                       data={stats.lowExitsMonth} 
                       layout="vertical"
@@ -254,16 +314,8 @@ const Dashboard = () => {
                       barSize={35}
                     >
                       <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" horizontal={true} vertical={false} />
-                      <XAxis 
-                        type="number"
-                        tick={{ fontSize: 12, fill: '#374151' }}
-                      />
-                      <YAxis 
-                        type="category"
-                        dataKey="nombre" 
-                        width={150}
-                        tick={{ fontSize: 11, fill: '#374151' }}
-                      />
+                      <XAxis type="number" tick={{ fontSize: 12, fill: '#374151' }} />
+                      <YAxis type="category" dataKey="nombre" width={150} tick={{ fontSize: 11, fill: '#374151' }} />
                       <Tooltip 
                         contentStyle={{ 
                           backgroundColor: '#fff', 
@@ -278,12 +330,7 @@ const Dashboard = () => {
                       <Bar 
                         dataKey="total_vendido" 
                         radius={[0, 8, 8, 0]}
-                        label={{ 
-                          position: 'right', 
-                          fill: '#374151',
-                          fontSize: 12,
-                          fontWeight: 'bold'
-                        }}
+                        label={{ position: 'right', fill: '#374151', fontSize: 12, fontWeight: 'bold' }}
                       >
                         {stats.lowExitsMonth.map((entry, index) => (
                           <Cell key={`cell-${index}`} fill={distinctColorsLow[index % distinctColorsLow.length]} />

@@ -96,7 +96,7 @@ const WarehouseModal = ({ isOpen, onClose, onSubmit, warehouse }) => {
           {/* Ubicación */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Dirección (Opcional)
+              Dirección
             </label>
             <input
               type="text"

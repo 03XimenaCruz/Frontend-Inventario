@@ -34,7 +34,6 @@ const ProtectedRoute = ({ children, adminOnly = false }) => {
   return children;
 };
 
-// Componente para redireccionar si ya está autenticado
 const PublicRoute = ({ children }) => {
   const { isAuthenticated, loading } = useAuth();
 

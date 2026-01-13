@@ -37,6 +37,8 @@ export const categoryService = {
       toast.success('Categoría eliminada exitosamente');
       return response.data;
     } catch (error) {
+      const errorMessage = error.response?.data?.message || 'Error al eliminar categoría';
+      toast.error(errorMessage);
       throw error;
     }
   },

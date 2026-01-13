@@ -37,6 +37,8 @@ export const warehouseService = {
       toast.success('Almacén eliminado exitosamente');
       return response.data;
     } catch (error) {
+      const errorMessage = error.response?.data?.message || 'Error al eliminar almacén';
+      toast.error(errorMessage);
       throw error;
     }
   },

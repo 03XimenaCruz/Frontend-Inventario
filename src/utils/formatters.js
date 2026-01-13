@@ -1,4 +1,3 @@
-// Formatear fecha a formato local
 export const formatDate = (dateString) => {
   const date = new Date(dateString);
   return date.toLocaleDateString('es-MX', {
@@ -8,7 +7,6 @@ export const formatDate = (dateString) => {
   });
 };
 
-// Formatear fecha y hora
 export const formatDateTime = (dateString) => {
   const date = new Date(dateString);
   return date.toLocaleString('es-MX', {
@@ -20,12 +18,10 @@ export const formatDateTime = (dateString) => {
   });
 };
 
-// Formatear números con separadores de miles
 export const formatNumber = (number) => {
   return new Intl.NumberFormat('es-MX').format(number);
 };
 
-// Formatear moneda
 export const formatCurrency = (amount) => {
   return new Intl.NumberFormat('es-MX', {
     style: 'currency',
@@ -33,26 +29,22 @@ export const formatCurrency = (amount) => {
   }).format(amount);
 };
 
-// Capitalizar primera letra
 export const capitalize = (str) => {
   if (!str) return '';
   return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
 };
 
-// Truncar texto
 export const truncateText = (text, maxLength = 50) => {
   if (!text) return '';
   if (text.length <= maxLength) return text;
   return text.substring(0, maxLength) + '...';
 };
 
-// Validar email
 export const isValidEmail = (email) => {
   const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   return re.test(email);
 };
 
-// Obtener estado de stock
 export const getStockStatus = (stock, stockMinimo, stockMaximo) => {
   if (stock <= stockMinimo) return 'bajo';
   if (stock >= stockMaximo) return 'suficiente';

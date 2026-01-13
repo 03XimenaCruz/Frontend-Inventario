@@ -15,7 +15,6 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Verificar si hay una sesión activa al cargar la aplicación
   useEffect(() => {
     const checkAuth = async () => {
       const token = localStorage.getItem('token');
@@ -23,11 +22,9 @@ export const AuthProvider = ({ children }) => {
 
       if (token && savedUser) {
         try {
-          // Verificar que el token siga siendo válido
           const response = await api.get('/auth/verify');
           setUser(response.data.user);
         } catch (error) {
-          // Si el token no es válido, limpiar localStorage
           localStorage.removeItem('token');
           localStorage.removeItem('user');
           setUser(null);
